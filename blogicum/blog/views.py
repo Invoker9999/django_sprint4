@@ -80,7 +80,6 @@ def edit_profile(request):
     return render(request, 'blog/user.html', context)
 
 
-
 @login_required
 def edit_post(request, post_id):
     """Редактирует запись блога."""
