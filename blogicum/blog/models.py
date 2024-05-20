@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from blog.constants import (TITLE_FIELD_LENGTH,
-                            REPRESENTATION_LENGTH)
+from blog.constants import (REPRESENTATION_LENGTH,
+                            TITLE_FIELD_LENGTH)
 from core.models import BaseBlogModel
 
 User = get_user_model()
@@ -57,8 +57,10 @@ class Post(BaseBlogModel):
     text = models.TextField('Текст')
     pub_date = models.DateTimeField(
         'Дата и время публикации',
-        help_text='Если установить дату и время в будущем — '
-        'можно делать отложенные публикации.'
+        help_text=(
+            'Если установить дату и время в будущем — '
+            'можно делать отложенные публикации.'
+        )
     )
     author = models.ForeignKey(
         User,
@@ -108,15 +110,10 @@ class Comment(BaseBlogModel):
         verbose_name='Комментарий',
         related_name='comments'
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено'
-    )
 
     class Meta:
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарий'
-        ordering = ('created_at',)
 
     def __str__(self) -> str:
         return self.text[:REPRESENTATION_LENGTH]

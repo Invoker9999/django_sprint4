@@ -1,6 +1,5 @@
-from django.urls import include, path
 from django.conf import settings
-from django.conf.urls.static import static
+from django.urls import include, path
 
 from . import views
 
@@ -39,4 +38,4 @@ urlpatterns = [
          views.category_posts, name='category_posts'),
     path('posts/', include(posts)),
     path('profile/', include(profile)),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
