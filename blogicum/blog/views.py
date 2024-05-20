@@ -3,7 +3,6 @@ from django.core.paginator import Paginator
 from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, redirect
 
-
 from blog.constants import POSTS_ON_PAGE
 from blog.forms import CommentForm, PostForm, ProfileEditForm
 from blog.models import Category, Comment, Post, User
@@ -81,6 +80,7 @@ def edit_profile(request):
     return render(request, 'blog/user.html', context)
 
 
+
 @login_required
 def edit_post(request, post_id):
     """Редактирует запись блога."""
@@ -89,11 +89,11 @@ def edit_post(request, post_id):
         return redirect('blog:post_detail', post_id)
     form = PostForm(
         request.POST or None, files=request.FILES or None, instance=post
-        )
+    )
+    context = {'form': form}
     if form.is_valid():
         post.save()
         return redirect('blog:post_detail', post_id)
-    context = {'form': form}
     return render(request, 'blog/create.html', context)
 
 
@@ -104,8 +104,8 @@ def delete_post(request, post_id):
     if request.user != post.author:
         return redirect('blog:post_detail', post_id)
     form = PostForm(request.POST or None, instance=post)
-    post.delete()
     context = {'form': form}
+    post.delete()
     return render(request, 'blog/create.html', context)
 
 
@@ -140,9 +140,12 @@ def edit_comment(request, post_id, comment_id):
 
 @login_required
 def delete_comment(request, post_id, comment_id):
-    """Удаляет комментарий."""
+    """Удаляет комментарий"""
     comment = get_object_or_404(Comment, id=comment_id)
     if request.user != comment.author:
         return redirect('blog:post_detail', post_id)
-    comment.delete()
-    return redirect('blog:post_detail', post_id)
+    if request.method == "POST":
+        comment.delete()
+        return redirect('blog:post_detail', post_id)
+    context = {'comment': comment}
+    return render(request, 'blog/comment.html', context)
