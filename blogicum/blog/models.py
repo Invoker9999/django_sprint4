@@ -111,7 +111,7 @@ class Comment(BaseBlogModel):
         related_name='comments'
     )
 
-    class Meta:
+    class Meta(BaseBlogModel.Meta):
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарий'
 

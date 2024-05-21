@@ -1,17 +1,13 @@
+import datetime
+
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, Prefetch
 from django.shortcuts import render, get_object_or_404, redirect
 
-from blog.constants import POSTS_ON_PAGE
+
 from blog.forms import CommentForm, PostForm, ProfileEditForm
 from blog.models import Category, Comment, Post, User
-from blog.service import get_posts
-
-
-def get_paginator(request, items, num=POSTS_ON_PAGE):
-    """Создает объект пагинации."""
-    return Paginator(items, num).get_page(request.GET.get('page'))
+from blog.service import get_paginator, get_posts
 
 
 def index(request):
@@ -27,7 +23,7 @@ def post_detail(request, post_id):
     posts = get_object_or_404(Post, id=post_id)
     if request.user != posts.author:
         posts = get_object_or_404(get_posts(Post.objects), id=post_id)
-    comments = Comment.objects.select_related('author')
+    comments = posts.comments.select_related('author')
     form = CommentForm()
     context = {'post': posts, 'form': form, 'comments': comments}
     return render(request, 'blog/detail.html', context)
@@ -58,12 +54,27 @@ def create_post(request):
 
 def profile(request, username):
     """Возвращает профиль пользователя."""
-    user = get_object_or_404(User, username=username)
-    posts_list = (
-        user.posts
-        .annotate(comment_count=Count('comments'))
-        .order_by('-pub_date')
+    if request.user.username == username:
+        queryset = Post.objects.select_related(
+            "location", "category", "author"
+        )
+    else:
+        queryset = Post.objects.select_related(
+            "location", "category", "author").filter(
+                pub_date__lte=datetime.datetime.now(),
+                is_published=True,
+                category__is_published=True,)
+    user = get_object_or_404(
+        User.objects.prefetch_related(
+            Prefetch(
+                "posts",
+                queryset.order_by("-pub_date").annotate(
+                    comment_count=Count("comments")
+                ),
+            ),
+        ).filter(username=username)
     )
+    posts_list = user.posts.all()
     page_obj = get_paginator(request, posts_list)
     context = {'profile': user, 'page_obj': page_obj}
     return render(request, 'blog/profile.html', context)
@@ -89,10 +100,10 @@ def edit_post(request, post_id):
     form = PostForm(
         request.POST or None, files=request.FILES or None, instance=post
     )
-    context = {'form': form}
     if form.is_valid():
         post.save()
         return redirect('blog:post_detail', post_id)
+    context = {'form': form}
     return render(request, 'blog/create.html', context)
 
 
@@ -131,8 +142,6 @@ def edit_comment(request, post_id, comment_id):
     if form.is_valid():
         form.save()
         return redirect('blog:post_detail', post_id)
-    else:
-        form = CommentForm(instance=comment)
     context = {'form': form, 'comment': comment}
     return render(request, 'blog/comment.html', context)
 
